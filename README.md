@@ -77,6 +77,8 @@ typedef struct Student {
 
 ## 环境要求
 
+> 使用前请确保已经激活了电脑对应的python环境,否则无法使用数据可视化功能
+
 - C++编译器（支持C++11或更高版本）
 - Python 3.x（用于数据可视化）
 - Python包依赖：
