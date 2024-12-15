@@ -56,48 +56,42 @@ void heapify(Student arr[], int n, int i)
 }
 
 // 堆排序主函数
-void heapSort(Student *head)
+void heapSort(StudentList* list)
 {
-    // 计算链表长度
-    int size = 0;
-    Student *current = head;
-    while (current != NULL)
-    {
-        size++;
-        current = current->next;
-    }
-
-    if (size == 0)
+    if (list->count == 0)
     {
         printf("没有学生数据！\n");
         return;
     }
 
     // 创建数组
-    Student *arr = (Student *)malloc(size * sizeof(Student));
+    Student* arr = (Student*)malloc(list->count * sizeof(Student));
     if (!arr)
     {
         printf("内存分配失败！\n");
         return;
     }
 
-    // 复制链表到数组并计算总成绩
-    current = head;
-    for (int i = 0; i < size; i++)
+    // 复制链表到数组
+    Student* current = list->head;
+    int i = 0;
+    while (current != NULL && i < list->count)
     {
         arr[i] = *current;
-        arr[i].total_score = calculateTotalScore(&arr[i]);
         current = current->next;
+        i++;
     }
 
-    // 构建堆
-    for (int i = size / 2 - 1; i >= 0; i--)
-        heapify(arr, size, i);
+    // 构建最大堆
+    for (int i = list->count / 2 - 1; i >= 0; i--)
+    {
+        heapify(arr, list->count, i);
+    }
 
     // 逐个从堆中提取元素
-    for (int i = size - 1; i > 0; i--)
+    for (int i = list->count - 1; i > 0; i--)
     {
-        // 将当前根节点移到末尾
+        // 将当前根节点（最大值）移到末尾
         Student temp = arr[0];
         arr[0] = arr[i];
         arr[i] = temp;
@@ -106,26 +100,36 @@ void heapSort(Student *head)
         heapify(arr, i, 0);
     }
 
-    // 打印前10名学生
-    printf("\n========== 前10名学生成绩排名 ==========\n");
-    printf("排名\t姓名\t学号\t总分\t必修\t选修\t二课\t创新\n");
-    printf("------------------------------------------------\n");
-
-    int count = (size < 10) ? size : 10;
-    for (int i = size - 1; i >= size - count; i--)
+    // 打印排序结果（前10名）
+    printf("\n=== 成绩排名（前10名）===\n");
+    printf("排名\t学号\t\t姓名\t总成绩\t必修\t选修\t二课\t创新\n");
+    
+    int display_count = list->count < 10 ? list->count : 10;
+    for (i = list->count - 1; i >= list->count - display_count; i--)
     {
         printf("%d\t%s\t%s\t%d\t%d\t%d\t%d\t%d\n",
-               size - i,
-               arr[i].name,
+               list->count - i,
                arr[i].id,
-               arr[i].total_score,
+               arr[i].name,
+               calculateTotalScore(&arr[i]),
                arr[i].required_score,
                arr[i].elective_score,
                arr[i].second_score,
                arr[i].innovation_score);
-        printf("------------------------------------------------\n");
     }
 
-    // 释放内存
+    // 更新链表中的顺序
+    current = list->head;
+    for (i = list->count - 1; i >= 0; i--)
+    {
+        if (current != NULL)
+        {
+            *current = arr[i];
+            current = current->next;
+        }
+    }
+
+    // 释放临时数组
     free(arr);
+    printf("\n排序完成！\n");
 }

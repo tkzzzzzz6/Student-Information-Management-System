@@ -34,6 +34,20 @@ Student *createStudent(const char *department, const char *grade, const char *cl
     return newStudent;
 }
 
+StudentList *initStudentList()
+{
+    StudentList *list = (StudentList *)malloc(sizeof(StudentList));
+    if (list == NULL)
+    {
+        printf("内存分配失败！\n");
+        return NULL;
+    }
+    list->head = NULL;
+    list->tail = NULL;
+    list->count = 0;
+    return list;
+}
+
 // 打印学生相关信息
 void printStudent(const Student *student)
 {
@@ -57,7 +71,8 @@ void printStudent(const Student *student)
 }
 
 // 从excel文件中加载学生信息
-void loadStudentsFromFile(Student **head, const char *filename)
+// 修改函数声明
+void loadStudentsFromFile(StudentList *list, const char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -106,7 +121,7 @@ void loadStudentsFromFile(Student **head, const char *filename)
                                             elective_score, second_score, innovation_score);
         if (newStudent != NULL)
         {
-            addStudent(head, newStudent);
+            addStudent(list, newStudent); // 使用新的 StudentList 结构
         }
     }
 
@@ -115,7 +130,7 @@ void loadStudentsFromFile(Student **head, const char *filename)
 }
 
 // 将学生信息保存到文件中
-void saveStudentsToFile(Student *head, const char *filename)
+void saveStudentsToFile(StudentList *list, const char *filename)
 {
     FILE *file = fopen(filename, "w");
     if (file == NULL)
@@ -128,15 +143,15 @@ void saveStudentsToFile(Student *head, const char *filename)
     fprintf(file, "系别,年级,班级,学号,姓名,性别,出生年月日,专业,培养层次,学制,校区,必修成绩,选修成绩,二课成绩,创新创业成绩,总成绩\n");
 
     // 写入学生数据
-    Student *current = head;
+    Student *current = list->head;
     while (current != NULL)
     {
-        fprintf(file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%d,%s,%d,%d,%d,%d\n",
+        fprintf(file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%d,%s,%d,%d,%d,%d,%d\n",
                 current->department, current->grade, current->class_name,
                 current->id, current->name, current->gender, current->birth_date,
                 current->major, current->education, current->years, current->campus,
                 current->required_score, current->elective_score,
-                current->second_score, current->innovation_score,current->total_score);
+                current->second_score, current->innovation_score, current->total_score);
         current = current->next;
     }
 
@@ -145,27 +160,32 @@ void saveStudentsToFile(Student *head, const char *filename)
 }
 
 // 添加学生信息
-void addStudent(Student **head, Student *newStudent)
+void addStudent(StudentList *list, Student *newStudent)
 {
-    if (*head == NULL)
+    if (newStudent == NULL)
     {
-        *head = newStudent;
+        return;
+    }
+
+    newStudent->next = NULL;
+
+    if (list->head == NULL)
+    {
+        list->head = newStudent;
+        list->tail = newStudent;
     }
     else
     {
-        Student *current = *head;
-        while (current->next != NULL)
-        {
-            current = current->next;
-        }
-        current->next = newStudent;
+        list->tail->next = newStudent;
+        list->tail = newStudent;
     }
+    list->count++;
 }
 
 // 按学号查找学生
-Student *findStudentById(Student *head, const char *id)
+Student *findStudentById(StudentList *list, const char *id)
 {
-    Student *current = head;
+    Student *current = list->head;
     while (current != NULL)
     {
         if (strcmp(current->id, id) == 0)
@@ -178,9 +198,9 @@ Student *findStudentById(Student *head, const char *id)
 }
 
 // 按姓名查找学生
-Student *findStudentByName(Student *head, const char *name)
+Student *findStudentByName(StudentList *list, const char *name)
 {
-    Student *current = head;
+    Student *current = list->head;
     while (current != NULL)
     {
         if (strcmp(current->name, name) == 0)
@@ -272,7 +292,7 @@ void modifyStudent(Student *student)
 // 系别 年级 班级 学号 姓名 性别 出生年月日 专业 培养层次 学制 校区 必修成绩 选修成绩 二课成绩 创新创业成绩
 // 下面是一个示例
 // 信息工程学院	2023	计算机202306	202305071	何婷	女	2004/12/9 计算机科学与技术 本科 4 雅安 99 97 97 83
-int importStudentsFromCSV(Student **head, const char *filename)
+int importStudentsFromCSV(StudentList *list, const char *filename)
 {
     FILE *file = fopen(filename, "r");
     if (file == NULL)
@@ -307,8 +327,8 @@ int importStudentsFromCSV(Student **head, const char *filename)
             if (newStudent != NULL)
             {
                 // 将新节点添加到链表头部
-                newStudent->next = *head;
-                *head = newStudent;
+                newStudent->next = list->head;
+                list->head = newStudent;
                 printf("成功导入学生: %s\n", name);
             }
             else
@@ -327,16 +347,16 @@ int importStudentsFromCSV(Student **head, const char *filename)
 }
 
 // 批量修改文本字段
-void batchModifyStudents(Student *head, const char *condition_field, const char *condition_value,
-                        const char *modify_field, const char *new_value)
+void batchModifyStudents(StudentList *list, const char *condition_field, const char *condition_value,
+                         const char *modify_field, const char *new_value)
 {
-    Student *current = head;
+    Student *current = list->head;
     int count = 0;
-    
+
     while (current != NULL)
     {
         bool match = false;
-        
+
         // 检查条件字段
         if (strcmp(condition_field, "department") == 0)
             match = (strcmp(current->department, condition_value) == 0);
@@ -346,9 +366,10 @@ void batchModifyStudents(Student *head, const char *condition_field, const char 
             match = (strcmp(current->class_name, condition_value) == 0);
         else if (strcmp(condition_field, "major") == 0)
             match = (strcmp(current->major, condition_value) == 0);
-        
+
         // 如果条件匹配，修改指定字段
-        if (match) {
+        if (match)
+        {
             if (strcmp(modify_field, "department") == 0)
                 strcpy(current->department, new_value);
             else if (strcmp(modify_field, "grade") == 0)
@@ -359,29 +380,30 @@ void batchModifyStudents(Student *head, const char *condition_field, const char 
                 strcpy(current->major, new_value);
             count++;
         }
-        
+
         current = current->next;
     }
-    
+
     printf("批量修改完成，共修改 %d 条记录\n", count);
 }
 
 // 批量修改成绩
-void batchModifyScores(Student *head, const char *condition_field, const char *condition_value,
-                      int score_type, int new_score)
+void batchModifyScores(StudentList *list, const char *condition_field, const char *condition_value,
+                       int score_type, int new_score)
 {
-    if (new_score < 0 || new_score > 100) {
+    if (new_score < 0 || new_score > 100)
+    {
         printf("错误：成绩必须在0-100之间！\n");
         return;
     }
 
-    Student *current = head;
+    Student *current = list->head;
     int count = 0;
-    
+
     while (current != NULL)
     {
         bool match = false;
-        
+
         // 检查条件字段
         if (strcmp(condition_field, "department") == 0)
             match = (strcmp(current->department, condition_value) == 0);
@@ -391,76 +413,83 @@ void batchModifyScores(Student *head, const char *condition_field, const char *c
             match = (strcmp(current->class_name, condition_value) == 0);
         else if (strcmp(condition_field, "major") == 0)
             match = (strcmp(current->major, condition_value) == 0);
-        
+
         // 如果条件匹配，修改指定成绩
-        if (match) {
-            switch(score_type) {
-                case 1:
-                    current->required_score = new_score;
-                    break;
-                case 2:
-                    current->elective_score = new_score;
-                    break;
-                case 3:
-                    current->second_score = new_score;
-                    break;
-                case 4:
-                    current->innovation_score = new_score;
-                    break;
+        if (match)
+        {
+            switch (score_type)
+            {
+            case 1:
+                current->required_score = new_score;
+                break;
+            case 2:
+                current->elective_score = new_score;
+                break;
+            case 3:
+                current->second_score = new_score;
+                break;
+            case 4:
+                current->innovation_score = new_score;
+                break;
             }
             count++;
         }
-        
+
         current = current->next;
     }
-    
+
     printf("批量修改完成，共修改 %d 条记录\n", count);
 }
 
 // 将学生成绩绘制为频率分布直方图，可选择必修成绩、选修成绩、二课成绩、创新创业成绩以及总成绩
-void drawHistogram(Student *head, int score_type)
+void drawHistogram(StudentList *list, int score_type)
 {
     // 首先收集并验证所有有效成绩
     std::vector<int> valid_scores;
-    Student *current = head;
+    Student *current = list->head;
     int invalid_count = 0;
-    
+
     while (current != NULL)
     {
         int selected_score;
-        
+
         // 根据用户选择决定使用哪种成绩
-        switch(score_type) {
-            case 1:
-                selected_score = current->required_score;
-                break;
-            case 2:
-                selected_score = current->elective_score;
-                break;
-            case 3:
-                selected_score = current->second_score;
-                break;
-            case 4:
-                selected_score = current->innovation_score;
-                break;
-            case 5:
-                // 计算总成绩（这里假设各科成绩权重相等）
-                selected_score = (current->required_score + 
-                                current->elective_score + 
-                                current->second_score + 
-                                current->innovation_score) / 4;
-                break;
-            default:
-                selected_score = current->required_score;
+        switch (score_type)
+        {
+        case 1:
+            selected_score = current->required_score;
+            break;
+        case 2:
+            selected_score = current->elective_score;
+            break;
+        case 3:
+            selected_score = current->second_score;
+            break;
+        case 4:
+            selected_score = current->innovation_score;
+            break;
+        case 5:
+            // 计算总成绩（这里假设各科成绩权重相等）
+            selected_score = (current->required_score +
+                              current->elective_score +
+                              current->second_score +
+                              current->innovation_score) /
+                             4;
+            break;
+        default:
+            selected_score = current->required_score;
         }
-        
+
         // 验证成绩是否在有效范围内
-        if (selected_score >= 0 && selected_score <= 100) {
+        if (selected_score >= 0 && selected_score <= 100)
+        {
             valid_scores.push_back(selected_score);
-        } else {
+        }
+        else
+        {
             invalid_count++;
         }
-        
+
         current = current->next;
     }
 
@@ -470,19 +499,22 @@ void drawHistogram(Student *head, int score_type)
     printf("有效成绩数: %d\n", valid_scores.size());
     printf("无效成绩数: %d\n", invalid_count);
 
-    if (valid_scores.empty()) {
+    if (valid_scores.empty())
+    {
         printf("没有找到任何有效的成绩数据！\n");
         return;
     }
 
     // 将成绩数据写入临时文件
     FILE *temp_file = fopen("temp_scores.txt", "w");
-    if (!temp_file) {
+    if (!temp_file)
+    {
         printf("无法创建临时文件！\n");
         return;
     }
 
-    for (int score : valid_scores) {
+    for (int score : valid_scores)
+    {
         fprintf(temp_file, "%d\n", score);
     }
     fclose(temp_file);
@@ -490,8 +522,9 @@ void drawHistogram(Student *head, int score_type)
     // 执行Python脚本，从文件读取数据
     printf("\n准备执行Python绘图脚本...\n");
     int result = system("python ./plot_py/plot_histogram.py -f temp_scores.txt");
-    
-    if (result != 0) {
+
+    if (result != 0)
+    {
         printf("执行Python脚本时出错。请检查：\n");
         printf("1. Python安装状态：");
         system("python --version");
@@ -503,6 +536,17 @@ void drawHistogram(Student *head, int score_type)
     remove("temp_scores.txt");
 }
 
+void freeStudentList(StudentList *list)
+{
+    if (list == NULL)
+        return;
 
-
-
+    Student *current = list->head;
+    while (current != NULL)
+    {
+        Student *next = current->next;
+        free(current);
+        current = next;
+    }
+    free(list);
+}

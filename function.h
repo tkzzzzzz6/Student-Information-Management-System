@@ -30,24 +30,28 @@ typedef struct Student
     struct Student *next;
 } Student;
 
+// 添加新的链表管理结构
+typedef struct {
+    Student* head;    // 指向链表头部
+    Student* tail;    // 指向链表尾部
+    int count;        // 记录学生总数
+} StudentList;
+
 // 函数声明
-Student *createStudent(const char *department, const char *grade, const char *class_name,
-                       const char *id, const char *name, const char *gender,
-                       const char *birth_date, const char *major, const char *education,
-                       int years, const char *campus, int required_score,
-                       int elective_score, int second_score, int innovation_score);
-void addStudent(Student **head, Student *newStudent);
+StudentList* initStudentList();
+void addStudent(StudentList* list, Student* newStudent);
 void printStudent(const Student *student);
-Student *findStudentById(Student *head, const char *id);
-Student *findStudentByName(Student *head, const char *name);
+Student* findStudentById(StudentList* list, const char *id);
+Student* findStudentByName(StudentList* list, const char *name);
 void modifyStudent(Student *student);
-void saveStudentsToFile(Student *head, const char *filename);
-void loadStudentsFromFile(Student **head, const char *filename);
-int importStudentsFromCSV(Student **head, const char *filename);
-void drawHistogram(Student *head, int score_type);
-void batchModifyStudents(Student *head, const char *condition_field, const char *condition_value,
+void saveStudentsToFile(StudentList* list, const char *filename);
+void loadStudentsFromFile(StudentList* list, const char *filename);
+int importStudentsFromCSV(StudentList* list, const char *filename);
+void drawHistogram(StudentList* list, int score_type);
+void batchModifyStudents(StudentList* list, const char *condition_field, const char *condition_value,
                         const char *modify_field, const char *new_value);
-void batchModifyScores(Student *head, const char *condition_field, const char *condition_value,
+void batchModifyScores(StudentList* list, const char *condition_field, const char *condition_value,
                       int score_type, int new_score);
+void freeStudentList(StudentList* list);
 
 #endif // FUNCTION_H
